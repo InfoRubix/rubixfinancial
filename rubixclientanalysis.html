@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubix Technology - Client Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" xintegrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js" xintegrity="sha512-YmD2GaOr6jKjFcoHrHQ2eCR/l/BjeA2s1VeO/m7UubS/eTrh5USprQo99Jt2EljB8R2EqiI2a+yV/x+l0o9ZdA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Client Annual Analysis</h1>
+                <p class="text-gray-600">Deep dive into individual client data</p>
+            </div>
+             <div class="flex items-center space-x-4 mt-4 sm:mt-0">
+                <a href="dashboard.html" class="py-2 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700">Dashboard</a>
+                <a href="rubixpettycash.html" class="py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Petty Cash</a>
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="bg-white p-4 rounded-lg shadow mb-8 flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <div class="w-full sm:w-1/2">
+                <label for="client-select" class="block text-sm font-medium text-gray-700">Select Client</label>
+                <select id="client-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option>Loading clients...</option>
+                </select>
+            </div>
+            <div class="w-full sm:w-1/4">
+                <label for="year-select" class="block text-sm font-medium text-gray-700">Select Year</label>
+                <select id="year-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option>Select client first</option>
+                </select>
+            </div>
+            <div class="w-full sm:w-auto flex-grow text-right pt-6 sm:pt-0">
+                 <button id="export-pdf-btn" class="hidden py-2 px-4 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 w-full sm:w-auto">
+                    <i class="fas fa-file-pdf mr-2"></i>Export to PDF
+                 </button>
+            </div>
+        </div>
+
+
+        <!-- Main Content: Loading State -->
+        <div id="loading-state" class="text-center py-20 hidden">
+            <i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i>
+            <p class="mt-4 text-gray-600">Fetching client data...</p>
+        </div>
+        
+        <!-- Main Content: Prompt State -->
+        <div id="prompt-state" class="text-center py-20">
+            <i class="fas fa-user-check text-4xl text-gray-400"></i>
+            <p class="mt-4 text-gray-600">Please select a client to view their annual analysis.</p>
+        </div>
+
+
+        <!-- Main Content: Data Loaded -->
+        <div id="analysis-content" class="hidden">
+            <!-- Key Metrics -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500 text-sm font-medium">Total Invoiced</h3>
+                    <p id="total-invoiced" class="text-2xl font-bold mt-1">RM 0.00</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500 text-sm font-medium">Total Receipts</h3>
+                    <p id="total-receipts" class="text-2xl font-bold mt-1 text-green-600">RM 0.00</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500 text-sm font-medium">Total Invoices</h3>
+                    <p id="total-invoices" class="text-2xl font-bold mt-1">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow text-center">
+                    <h3 class="text-gray-500 text-sm font-medium">Average Invoice Value</h3>
+                    <p id="avg-invoice-value" class="text-2xl font-bold mt-1">RM 0.00</p>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="bg-white p-6 rounded-lg shadow mb-8">
+                <h3 class="font-semibold mb-4">Monthly Invoice Totals for <span id="chart-year"></span></h3>
+                <canvas id="monthlyRevenueChart"></canvas>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="font-semibold mb-4">All Invoices for <span id="table-year"></span></h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="p-3 font-medium">Invoice Date</th>
+                                <th class="p-3 font-medium">Invoice #</th>
+                                <th class="p-3 font-medium text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="client-invoices-table">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhjrxfcXCwOOTthsRPSLlI1yPymS9-kTo_WObuw0hB-5iyutQUpQ4jXFtfJfYqVjkqTw/exec";
+        let allDocuments = [];
+        let monthlyChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAllDataAndPopulateClients();
+            document.getElementById('client-select').addEventListener('change', updateAnalysis);
+            document.getElementById('year-select').addEventListener('change', updateAnalysis);
+            document.getElementById('export-pdf-btn').addEventListener('click', exportToPDF);
+        });
+
+        function fetchAllDataAndPopulateClients() {
+            fetch(SCRIPT_URL + '?action=getDashboardData')
+                .then(res => res.json())
+                .then(response => {
+                    if (response.status === 'success') {
+                        allDocuments = response.data.documents;
+                        populateClientDropdown(allDocuments);
+                    } else {
+                        throw new Error(response.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching initial data:', error);
+                    const clientSelect = document.getElementById('client-select');
+                    clientSelect.innerHTML = `<option>Error loading clients</option>`;
+                });
+        }
+
+        function populateClientDropdown(documents) {
+            const clientInvoices = documents.filter(d => d.DocumentType === 'invoice');
+            const clientNames = [...new Set(clientInvoices.map(d => d.ClientName))].sort();
+            
+            const clientSelect = document.getElementById('client-select');
+            clientSelect.innerHTML = '<option value="">-- Select a Client --</option>'; // Default option
+            
+            clientNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                clientSelect.appendChild(option);
+            });
+        }
+
+        function updateAnalysis() {
+            const selectedClient = document.getElementById('client-select').value;
+            const yearSelect = document.getElementById('year-select');
+            
+            if (!selectedClient) {
+                document.getElementById('analysis-content').classList.add('hidden');
+                document.getElementById('prompt-state').classList.remove('hidden');
+                document.getElementById('export-pdf-btn').classList.add('hidden');
+                yearSelect.innerHTML = '<option>Select client first</option>';
+                return;
+            }
+
+            document.getElementById('prompt-state').classList.add('hidden');
+            const clientDocuments = allDocuments.filter(d => d.ClientName === selectedClient);
+            
+            // Populate year dropdown if it's the first time for this client
+            if (yearSelect.dataset.client !== selectedClient) {
+                 populateYearDropdown(clientDocuments);
+                 yearSelect.dataset.client = selectedClient;
+            }
+
+            const selectedYear = yearSelect.value;
+            if(!selectedYear) return;
+
+            renderDataForClientYear(clientDocuments, selectedYear);
+        }
+
+        function populateYearDropdown(clientDocuments) {
+            const yearSelect = document.getElementById('year-select');
+            const years = [...new Set(clientDocuments.map(d => new Date(d.DocumentDate).getFullYear()))].sort((a,b) => b-a);
+            
+            yearSelect.innerHTML = '';
+            if (years.length === 0) {
+                 yearSelect.innerHTML = '<option>No invoices found</option>';
+                 return;
+            }
+
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearSelect.appendChild(option);
+            });
+        }
+        
+        function renderDataForClientYear(allClientDocuments, year) {
+            const documentsForYear = allClientDocuments.filter(d => new Date(d.DocumentDate).getFullYear() == year);
+            
+            document.getElementById('analysis-content').classList.remove('hidden');
+            document.getElementById('export-pdf-btn').classList.remove('hidden');
+
+
+            // 1. Update Key Metrics
+            const invoicesForYear = documentsForYear.filter(d => d.DocumentType === 'invoice');
+            const receiptsForYear = documentsForYear.filter(d => d.DocumentType === 'receipt');
+
+            const totalInvoiced = invoicesForYear.reduce((sum, doc) => sum + parseFloat(doc.Total || 0), 0);
+            const totalReceipts = receiptsForYear.reduce((sum, doc) => sum + parseFloat(doc.Total || 0), 0);
+            const totalInvoices = invoicesForYear.length;
+            const avgInvoiceValue = totalInvoices > 0 ? totalInvoiced / totalInvoices : 0;
+
+            document.getElementById('total-invoiced').textContent = `RM ${totalInvoiced.toFixed(2)}`;
+            document.getElementById('total-receipts').textContent = `RM ${totalReceipts.toFixed(2)}`;
+            document.getElementById('total-invoices').textContent = totalInvoices;
+            document.getElementById('avg-invoice-value').textContent = `RM ${avgInvoiceValue.toFixed(2)}`;
+
+            // 2. Update Chart
+            updateMonthlyChart(invoicesForYear, year);
+
+            // 3. Update Table
+            populateInvoicesTable(invoicesForYear);
+        }
+
+        function updateMonthlyChart(invoices, year) {
+            document.getElementById('chart-year').textContent = year;
+            const monthlyTotals = Array(12).fill(0);
+            invoices.forEach(d => {
+                const month = new Date(d.DocumentDate).getMonth(); // 0-11
+                monthlyTotals[month] += parseFloat(d.Total || 0);
+            });
+
+            const chartCtx = document.getElementById('monthlyRevenueChart').getContext('2d');
+            const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            if (monthlyChart) {
+                monthlyChart.destroy();
+            }
+
+            monthlyChart = new Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `Total Invoice Value for ${year}`,
+                        data: monthlyTotals,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: value => `RM ${value}` } } }
+                }
+            });
+        }
+
+        function populateInvoicesTable(invoices) {
+            document.getElementById('table-year').textContent = new Date(invoices[0]?.DocumentDate).getFullYear();
+            const tableBody = document.getElementById('client-invoices-table');
+            tableBody.innerHTML = '';
+
+            if (invoices.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="3" class="text-center p-4">No invoices found for this year.</td></tr>`;
+                return;
+            }
+
+            invoices.sort((a,b) => new Date(a.DocumentDate) - new Date(b.DocumentDate));
+
+            invoices.forEach(doc => {
+                const row = `
+                    <tr class="border-b">
+                        <td class="p-3">${new Date(doc.DocumentDate).toLocaleDateString()}</td>
+                        <td class="p-3">${doc.DocumentNumber}</td>
+                        <td class="p-3 text-right">RM ${parseFloat(doc.Total || 0).toFixed(2)}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function exportToPDF() {
+            const exportButton = document.getElementById('export-pdf-btn');
+            const originalButtonText = exportButton.innerHTML;
+
+            exportButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+            exportButton.disabled = true;
+
+            const clientName = document.getElementById('client-select').value;
+            const year = document.getElementById('year-select').value;
+            const fileName = `Client_Analysis_${clientName.replace(/\s/g, '_')}_${year}.pdf`;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // Get data for the report
+                const clientDocuments = allDocuments.filter(d => d.ClientName === clientName);
+                const documentsForYear = clientDocuments.filter(d => new Date(d.DocumentDate).getFullYear() == year);
+                const invoicesForYear = documentsForYear.filter(d => d.DocumentType === 'invoice').sort((a, b) => new Date(a.DocumentDate) - new Date(b.DocumentDate));
+                const receiptsForYear = documentsForYear.filter(d => d.DocumentType === 'receipt');
+
+                const totalInvoiced = invoicesForYear.reduce((sum, doc) => sum + parseFloat(doc.Total || 0), 0);
+                const totalReceipts = receiptsForYear.reduce((sum, doc) => sum + parseFloat(doc.Total || 0), 0);
+                const totalInvoices = invoicesForYear.length;
+                const avgInvoiceValue = totalInvoices > 0 ? totalInvoiced / totalInvoices : 0;
+                
+                // 1. Add Title
+                doc.setFontSize(18);
+                doc.text(`Client Annual Analysis: ${clientName}`, 14, 22);
+                doc.setFontSize(12);
+                doc.text(`Report for the year ${year}`, 14, 30);
+
+                // 2. Add Summary Table
+                const summaryData = [
+                    ['Total Invoiced', `RM ${totalInvoiced.toFixed(2)}`],
+                    ['Total Receipts', `RM ${totalReceipts.toFixed(2)}`],
+                    ['Total Invoices', `${totalInvoices}`],
+                    ['Average Invoice Value', `RM ${avgInvoiceValue.toFixed(2)}`],
+                ];
+                
+                doc.autoTable({
+                    startY: 40,
+                    head: [['Metric', 'Value']],
+                    body: summaryData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [22, 160, 133] }
+                });
+
+                // 3. Add Invoices Table
+                 doc.autoTable({
+                    startY: doc.autoTable.previous.finalY + 15,
+                    head: [['Invoice Date', 'Invoice Number', 'Amount']],
+                    body: invoicesForYear.map(inv => [
+                        new Date(inv.DocumentDate).toLocaleDateString(),
+                        inv.DocumentNumber,
+                        `RM ${parseFloat(inv.Total || 0).toFixed(2)}`
+                    ]),
+                    theme: 'grid',
+                    headStyles: { fillColor: [41, 128, 185] }
+                });
+
+                // 4. Save the PDF
+                doc.save(fileName);
+
+            } catch(err) {
+                 console.error("Error exporting to PDF: ", err);
+                 alert("An error occurred while exporting the PDF.");
+            } finally {
+                exportButton.innerHTML = originalButtonText;
+                exportButton.disabled = false;
+            }
+        }
+
+    </script>
+</body>
+</html>
