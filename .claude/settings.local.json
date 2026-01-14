@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start \"\" \"C:\\Users\\Raif Hakimi\\Documents\\RUBIX\\rubixfinancial\\index.html\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
