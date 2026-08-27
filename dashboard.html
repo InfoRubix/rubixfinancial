@@ -27,6 +27,7 @@
                 <div class="text-sm text-gray-500">
                     <p>Last updated: <span id="last-updated">...</span></p>
                 </div>
+                <button onclick="openInvoiceHistoryModal()" class="py-2 px-4 bg-gray-700 text-white font-semibold rounded-lg shadow-md hover:bg-gray-800"><i class="fas fa-file-invoice-dollar mr-1"></i>Invoice History</button>
                 <a href="index.html" class="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700">Generator</a>
                 <a href="rubixpettycash.html" class="py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Petty Cash</a>
             </div>
@@ -118,8 +119,41 @@
         </div>
     </div>
 
+    <!-- Invoice History Modal -->
+    <div id="invoiceHistoryModal" class="fixed z-20 inset-0 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75" onclick="closeInvoiceHistoryModal()"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-3xl w-full p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Invoice History</h3>
+                    <button onclick="closeInvoiceHistoryModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <input id="invoice-search" type="text" placeholder="Search by client or invoice #..." class="w-full border border-gray-300 rounded-lg p-2 mb-4" oninput="renderInvoiceHistory()">
+                <div class="overflow-x-auto max-h-96 overflow-y-auto border rounded-lg">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="p-3 font-medium">Date</th>
+                                <th class="p-3 font-medium">Invoice #</th>
+                                <th class="p-3 font-medium">Client</th>
+                                <th class="p-3 font-medium text-right">Amount</th>
+                                <th class="p-3 font-medium text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-history-table">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhjrxfcXCwOOTthsRPSLlI1yPymS9-kTo_WObuw0hB-5iyutQUpQ4jXFtfJfYqVjkqTw/exec";
+        let allDocumentsData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchDashboardData();
@@ -146,7 +180,8 @@
 
         function processDashboardData(data) {
             const { documents, clients } = data;
-            
+            allDocumentsData = documents;
+
             // 1. Process Key Metrics
             const totalRevenue = documents
                 .filter(d => d.DocumentType === 'invoice')
@@ -262,17 +297,69 @@
             });
         }
 
+        function formatDate(dateValue) {
+            const d = new Date(dateValue);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            return `${day}/${month}/${d.getFullYear()}`;
+        }
+
         function populateRecentDocsTable(docs) {
             const tableBody = document.getElementById('recent-docs-table');
             tableBody.innerHTML = '';
             docs.forEach(doc => {
                 const row = `
                     <tr class="border-b">
-                        <td class="p-3">${new Date(doc.Timestamp).toLocaleDateString()}</td>
+                        <td class="p-3">${formatDate(doc.Timestamp)}</td>
                         <td class="p-3">${doc.DocumentType}</td>
                         <td class="p-3">${doc.DocumentNumber}</td>
                         <td class="p-3">${doc.ClientName}</td>
                         <td class="p-3 text-right">RM ${parseFloat(doc.Total || 0).toFixed(2)}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function openInvoiceHistoryModal() {
+            document.getElementById('invoice-search').value = '';
+            renderInvoiceHistory();
+            document.getElementById('invoiceHistoryModal').classList.remove('hidden');
+        }
+
+        function closeInvoiceHistoryModal() {
+            document.getElementById('invoiceHistoryModal').classList.add('hidden');
+        }
+
+        function renderInvoiceHistory() {
+            const query = document.getElementById('invoice-search').value.toLowerCase();
+            const invoices = allDocumentsData
+                .filter(d => d.DocumentType === 'invoice')
+                .filter(d => !query
+                    || (d.DocumentNumber || '').toLowerCase().includes(query)
+                    || (d.ClientName || '').toLowerCase().includes(query))
+                .sort((a, b) => new Date(b.DocumentDate) - new Date(a.DocumentDate));
+
+            const tableBody = document.getElementById('invoice-history-table');
+            tableBody.innerHTML = '';
+
+            if (invoices.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No invoices found.</td></tr>`;
+                return;
+            }
+
+            invoices.forEach(doc => {
+                const row = `
+                    <tr class="border-b">
+                        <td class="p-3">${formatDate(doc.DocumentDate)}</td>
+                        <td class="p-3">${doc.DocumentNumber}</td>
+                        <td class="p-3">${doc.ClientName}</td>
+                        <td class="p-3 text-right">RM ${parseFloat(doc.Total || 0).toFixed(2)}</td>
+                        <td class="p-3 text-center">
+                            <a href="index.html?loadInvoice=${encodeURIComponent(doc.DocumentNumber)}" target="_blank" title="Download / Print Invoice" class="text-indigo-600 hover:text-indigo-800">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </td>
                     </tr>
                 `;
                 tableBody.innerHTML += row;

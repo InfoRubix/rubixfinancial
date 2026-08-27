@@ -747,6 +747,7 @@
                     if (response.status === 'success') {
                         allDocuments = response.data;
                         populateDocumentSelect();
+                        handleLoadInvoiceParam();
                     } else {
                         throw new Error(response.message);
                     }
@@ -756,6 +757,21 @@
                     const docSelect = document.getElementById('document-select');
                     docSelect.innerHTML = '<option value="">Error loading documents</option>';
                 });
+        }
+
+        function handleLoadInvoiceParam() {
+            const invoiceNumber = new URLSearchParams(window.location.search).get('loadInvoice');
+            if (!invoiceNumber) return;
+
+            const doc = allDocuments.find(d => d.DocumentType === 'invoice' && d.DocumentNumber === invoiceNumber);
+            if (!doc) {
+                showStatusMessage(`Invoice ${invoiceNumber} not found.`, true);
+                return;
+            }
+
+            document.getElementById('document-select').value = doc.rowNumber;
+            loadSelectedDocument();
+            setTimeout(() => printDocument(), 400);
         }
 
         function populateDocumentSelect() {
